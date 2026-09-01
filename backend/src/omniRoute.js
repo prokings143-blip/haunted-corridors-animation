@@ -1,35 +1,43 @@
 /**
  * OmniRoute API Client
  * Handles communication with OmniRoute video generation service
+ * 
+ * IMPORTANT:
+ * - Returns the actual OmniRoute response (no invented fields)
+ * - Uses Bearer token authentication
+ * - API Key is never exposed to frontend
  */
 
-export async function generateVideoWithOmniRoute({
+export async function generateShotWithOmniRoute({
   prompt,
-  duration,
   model
 }) {
   const baseUrl = process.env.OMNIROUTE_BASE_URL || "http://localhost:20128/v1";
   const apiKey = process.env.OMNIROUTE_API_KEY;
 
   if (!apiKey) {
-    throw new Error("OMNIROUTE_API_KEY is not configured");
+    throw new Error(
+      "OMNIROUTE_API_KEY is not configured. Please set it in .env"
+    );
   }
 
   if (!model) {
-    throw new Error("VIDEO_MODEL is not configured");
+    throw new Error(
+      "VIDEO_MODEL is not configured. Please set it in .env"
+    );
   }
 
   const url = `${baseUrl}/videos/generations`;
 
+  // Only send fields that OmniRoute API actually needs
   const payload = {
     model,
-    prompt,
-    duration
+    prompt
   };
 
   try {
-    console.log(`[OmniRoute] Sending request to ${url}`);
-    console.log(`[OmniRoute] Model: ${model}, Duration: ${duration}s`);
+    console.log(`[OmniRoute] POST ${url}`);
+    console.log(`[OmniRoute] Model: ${model}`);
 
     const response = await fetch(url, {
       method: "POST",
@@ -42,61 +50,22 @@ export async function generateVideoWithOmniRoute({
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[OmniRoute] Error ${response.status}:`, errorText);
       throw new Error(
         `OmniRoute API error: ${response.status} ${response.statusText}\n${errorText}`
       );
     }
 
     const data = await response.json();
-    console.log("[OmniRoute] Response received:", data);
+    console.log("[OmniRoute] Response:", JSON.stringify(data, null, 2));
 
+    // Return the ACTUAL OmniRoute response, unmodified
     return {
       success: true,
-      videoId: data.id || data.videoId,
-      videoUrl: data.url || data.videoUrl,
-      status: data.status || "processing",
-      data
+      omnirouteResponse: data
     };
   } catch (error) {
-    console.error("[OmniRoute] Error:", error.message);
-    throw error;
-  }
-}
-
-/**
- * Poll OmniRoute for video generation status
- */
-export async function getVideoStatus(videoId) {
-  const baseUrl = process.env.OMNIROUTE_BASE_URL || "http://localhost:20128/v1";
-  const apiKey = process.env.OMNIROUTE_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("OMNIROUTE_API_KEY is not configured");
-  }
-
-  const url = `${baseUrl}/videos/generations/${videoId}`;
-
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch video status: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return {
-      success: true,
-      status: data.status,
-      videoUrl: data.url || data.videoUrl,
-      data
-    };
-  } catch (error) {
-    console.error("[OmniRoute] Status check error:", error.message);
+    console.error("[OmniRoute] Request failed:", error.message);
     throw error;
   }
 }
