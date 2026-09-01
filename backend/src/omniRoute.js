@@ -1,11 +1,15 @@
 /**
  * OmniRoute API Client
  * Handles communication with OmniRoute video generation service
- * 
- * IMPORTANT:
- * - Returns the actual OmniRoute response (no invented fields)
- * - Uses Bearer token authentication
- * - API Key is never exposed to frontend
+ *
+ * IMPORTANT REQUIREMENTS:
+ * 1. Use POST /v1/videos/generations endpoint
+ * 2. Send Authorization: Bearer ${OMNIROUTE_API_KEY}
+ * 3. Send only: model, prompt
+ * 4. Do NOT invent model names - use VIDEO_MODEL from env
+ * 5. Do NOT expose API key to frontend
+ * 6. Preserve actual OmniRoute response - do NOT assume response fields
+ * 7. Do NOT include invented fields like videoUrl, status, videoId
  */
 
 export async function generateShotWithOmniRoute({
@@ -29,7 +33,7 @@ export async function generateShotWithOmniRoute({
 
   const url = `${baseUrl}/videos/generations`;
 
-  // Only send fields that OmniRoute API actually needs
+  // Send ONLY the fields OmniRoute actually requires
   const payload = {
     model,
     prompt
@@ -38,6 +42,7 @@ export async function generateShotWithOmniRoute({
   try {
     console.log(`[OmniRoute] POST ${url}`);
     console.log(`[OmniRoute] Model: ${model}`);
+    console.log(`[OmniRoute] Prompt length: ${prompt.length} chars`);
 
     const response = await fetch(url, {
       method: "POST",
@@ -57,9 +62,10 @@ export async function generateShotWithOmniRoute({
     }
 
     const data = await response.json();
-    console.log("[OmniRoute] Response:", JSON.stringify(data, null, 2));
+    console.log("[OmniRoute] Response received:", JSON.stringify(data, null, 2));
 
-    // Return the ACTUAL OmniRoute response, unmodified
+    // Return the ACTUAL, UNMODIFIED OmniRoute response
+    // Do NOT invent fields or assume response structure
     return {
       success: true,
       omnirouteResponse: data
