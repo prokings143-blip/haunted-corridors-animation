@@ -1,0 +1,6 @@
+.gitignore
+backend/.env.example
+backend/server.js
+backend/src/omniRoute.js
+backend/src/promptBuilder.js
+backend/src/storyboard.js
